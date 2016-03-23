@@ -29,6 +29,7 @@ def main():
     page = 0
     curr = ''
     prev = ''
+    dups = 0
 
     while True:
         chapter += 1
@@ -52,15 +53,19 @@ def main():
                     f.write(requests.get(img).content)
                 curr = md5sum(img_name)
                 if curr == prev:
-                    print(' -> Found Stop Image')
-                    imgs.append(img_name)
-                    print(' -> Cleaning Up')
-                    for img in imgs:
-                        os.remove(img)
-                    print(' -> Done')
-                    return 
+                    print(' -> Found Duplicate Image')
+                    dups += 1
+                    if dups > 5:
+                        print(' -> Found Multiple Duplicates')
+                        print(' -> Cleaning Up')
+                        imgs.append(img_name)
+                        for img in imgs:
+                           os.remove(img)
+                        print(' -> Done')
+                        return 
                 else:
                     prev = curr
+                    dups = 0
                 imgs.append(img_name)
             else:
                 page = 0
