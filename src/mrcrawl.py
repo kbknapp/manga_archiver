@@ -11,6 +11,9 @@ import clapp
 # TODO:
 #  * Add files to dirs
 
+MANGAREADER = 'http://www.mangareader.net/{}/{}/{}'
+MANGATOWN = 'http://www.mangatown.com/manga/{}/c{:0>3}/{}.html'
+
 def md5sum(filename):
     with open(filename, mode='rb') as f:
         d = hashlib.md5()
@@ -39,18 +42,19 @@ def parse_cli():
             long='--chapter',\
             args_taken=1, \
             help='Start at chapter number')
+    app.new_arg('src', \
+            short='-s', \
+            long='--src',\
+            args_taken=1, \
+            help='Source to download from (all lowercase, nospaces; i.e mangareader [default])')
 
     return app.start()
 
-def main():
-    cxt = parse_cli()
+def main(cxt, manga_url=MANGAREADER):
     # prefix for CBR and JPG files
     manga = cxt['manga']
-    # without trailing chapter, page, or '/'
-    manga_base_url =  'http://www.mangareader.net/{}'.format(manga)
     file_name = '{}_{:0>3}_{:0>3}.jpg'
     cbr = '{}_ch{:0>3}.cbr'
-    manga_url = '{}/{}/{}'
 
     chapter = 0
     if cxt['chapter']:
@@ -64,21 +68,21 @@ def main():
 
     while True:
         chapter += 1
-        base_url = manga_url.format(manga_base_url, chapter, page)
-        if not requests.get(base_url):
+        url = manga_url.format(manga, chapter, page)
+        if not requests.get(url):
             break
-        print('Downloading Chapter...{}'.format(chapter))
+        print('* Downloading Chapter...{}'.format(chapter))
         imgs = []
         while True:
             page += 1
-            base_url = manga_url.format(manga_base_url, chapter, page)
-            req = requests.get(base_url)
+            url = manga_url.format(manga, chapter, page)
+            req = requests.get(url)
             if req:
-                html_page = requests.get(base_url).text
-                doc = html.fromstring(html_page)
+                html_txt = requests.get(url).text
+                doc = html.fromstring(html_txt)
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
-                print(' -> Downloading page...{}'.format(page))
+                print(' -> Page...{}'.format(page))
                 img_name = file_name.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
@@ -86,7 +90,7 @@ def main():
                 if curr == prev:
                     print(' -> Found Duplicate Image')
                     dups += 1
-                    if dups > 5:
+                    if dups > 3:
                         print(' -> Found Multiple Duplicates')
                         print(' -> Cleaning Up')
                         imgs.append(img_name)
@@ -110,4 +114,11 @@ def main():
                 break
 
 if __name__ == '__main__':
-    sys.exit(main())
+    cxt = parse_cli()
+    src = cxt['src'][0]
+    if src == 'mangatown':
+        print('Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
+        sys.exit(main(cxt, MANGATOWN))
+    else:
+        print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
+        sys.exit(main(cxt))
