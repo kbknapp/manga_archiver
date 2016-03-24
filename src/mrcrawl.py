@@ -71,8 +71,9 @@ def main(cxt, manga_url=MANGAREADER):
         url = manga_url.format(manga, chapter, page)
         if not requests.get(url):
             break
-        print('* Downloading Chapter...{}'.format(chapter))
+        print(':: Downloading Chapter...{}'.format(chapter))
         imgs = []
+        print(' -> Pages', end='', flush=True)
         while True:
             page += 1
             url = manga_url.format(manga, chapter, page)
@@ -82,21 +83,20 @@ def main(cxt, manga_url=MANGAREADER):
                 doc = html.fromstring(html_txt)
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
-                print(' -> Page...{}'.format(page))
+                print('...{}'.format(page), end='', flush=True)
                 img_name = file_name.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
                 curr = md5sum(img_name)
                 if curr == prev:
-                    print(' -> Found Duplicate Image')
                     dups += 1
                     if dups > 3:
-                        print(' -> Found Multiple Duplicates')
-                        print(' -> Cleaning Up')
+                        print('\n -> Found Multiple Duplicates')
+                        print(' -> Cleaning Up...', end='', flush=True)
                         imgs.append(img_name)
                         for img in imgs:
                            os.remove(img)
-                        print(' -> Done')
+                        print('Done')
                         return 
                 else:
                     prev = curr
@@ -104,13 +104,13 @@ def main(cxt, manga_url=MANGAREADER):
                 imgs.append(img_name)
             else:
                 page = 0
-                print(' -> Creating CBR...')
+                print('\n -> Creating CBR...', end='', flush=True)
                 zip = zipfile.ZipFile(cbr.format(manga, chapter), 'w')
                 for img in imgs:
                     zip.write(img)
                     os.remove(img)
                 zip.close()
-                print(' -> Done')
+                print('Done')
                 break
 
 if __name__ == '__main__':
