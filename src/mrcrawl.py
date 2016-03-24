@@ -25,7 +25,7 @@ def parse_cli():
     app = clapp.App()
     app.name = 'MR Crawl'
     app.author = 'Kevin K. <kbknapp@gmail.com>'
-    app.version = '0.1'
+    app.version = '0.2'
     app.about = 'Command Line utility to download manga into CBR files'
     
     app.new_arg('manga', \
