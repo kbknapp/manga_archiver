@@ -28,7 +28,6 @@ def parse_cli():
     app.new_arg('manga', \
             index=1, \
             required=True, \
-            args_taken=1, \
             help='The name of the manga, lowercase, hyphens for spaces')
     app.new_arg('page', \
             short='-p', \
