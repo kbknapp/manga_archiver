@@ -1,15 +1,14 @@
 #!/usr/bin/env python
-import sys
-import zipfile
-import os
-from lxml import html
-import requests
+import clapp
 import hashlib
 from functools import partial
-import clapp
+from lxml import html
+import requests
+import sys
+import os
+import zipfile
 
 # TODO:
-#  * Add files to dirs
 
 MANGAREADER = 'http://www.mangareader.net/{}/{}/{}'
 MANGATOWN = 'http://www.mangatown.com/manga/{}/c{:0>3}/{}.html'
@@ -25,7 +24,7 @@ def parse_cli():
     app = clapp.App()
     app.name = 'MR Crawl'
     app.author = 'Kevin K. <kbknapp@gmail.com>'
-    app.version = '0.2.2'
+    app.version = '0.2.3'
     app.about = 'Command Line utility to download manga into CBR files'
     
     app.new_arg('manga', \
@@ -73,7 +72,6 @@ def main(cxt, manga_url=MANGAREADER):
             break
         print(':: Downloading Chapter...{}'.format(chapter))
         imgs = []
-        print(' -> Pages', end='', flush=True)
         while True:
             page += 1
             url = manga_url.format(manga, chapter, page)
@@ -83,7 +81,8 @@ def main(cxt, manga_url=MANGAREADER):
                 doc = html.fromstring(html_txt)
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
-                print('...{}'.format(page), end='', flush=True)
+                print(' -> Page...%d\r'%page, end='')
+                #print('{}'.format(page), end='', flush=True)
                 img_name = file_name.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     if cxt['src']:
         src = cxt['src'][0]
         if src == 'mangatown':
-            print('Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
+            print(':: Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
             sys.exit(main(cxt, MANGATOWN))
     print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
     sys.exit(main(cxt))
