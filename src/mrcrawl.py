@@ -8,9 +8,6 @@ from functools import partial
 
 # TODO:
 #  * Add files to dirs
-#  * Stop at md5: 492b6905734dc0010017c4d7f177daf1
-
-STOP = '492b6905734dc0010017c4d7f177daf1'
 
 def md5sum(filename):
     with open(filename, mode='rb') as f:
@@ -21,16 +18,17 @@ def md5sum(filename):
 
 def main():
     # prefix for CBR and JPG files
-    manga = 'Ousama_Game'
+    manga = ''
     # without trailing chapter, page, or '/'
-    manga_base_url =  'http://www.mangareader.net/ousama-game'
+    manga_base_url =  ''
     file_name = '{}_{:0>3}_{:0>3}.jpg'
     cbr = '{}_ch{:0>3}.cbr'
     manga_url = '{}/{}/{}'
 
     chapter = 0
     page = 0
-    stops = 0
+    curr = ''
+    prev = ''
 
     while True:
         chapter += 1
@@ -52,16 +50,17 @@ def main():
                 img_name = file_name.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
-                if md5sum(img_name) == STOP:
-                    stops += 1
-                    if stops > 1:
-                        stops = 0
-                        imgs.append(img_name)
-                        for img in imgs:
-                            os.remove(img)
-                        return 
+                curr = md5sum(img_name)
+                if curr == prev:
+                    print(' -> Found Stop Image')
+                    imgs.append(img_name)
+                    print(' -> Cleaning Up')
+                    for img in imgs:
+                        os.remove(img)
+                    print(' -> Done')
+                    return 
                 else:
-                    stops = 0
+                    prev = curr
                 imgs.append(img_name)
             else:
                 page = 0
