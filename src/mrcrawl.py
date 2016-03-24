@@ -115,10 +115,10 @@ def main(cxt, manga_url=MANGAREADER):
 
 if __name__ == '__main__':
     cxt = parse_cli()
-    src = cxt['src'][0]
-    if src == 'mangatown':
-        print('Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
-        sys.exit(main(cxt, MANGATOWN))
-    else:
-        print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
-        sys.exit(main(cxt))
+    if cxt['src']:
+        src = cxt['src'][0]
+        if src == 'mangatown':
+            print('Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
+            sys.exit(main(cxt, MANGATOWN))
+    print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
+    sys.exit(main(cxt))
