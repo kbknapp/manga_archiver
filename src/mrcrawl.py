@@ -183,7 +183,7 @@ def mangatown(cxt):
                     page = 1
                     incd_ch = True
                     if imgs:
-                        make_cbr(imgs, manga, chapter)
+                        make_cbr(imgs, manga, chapter-1)
                         imgs = []
                     break
                 elif link_urls[0] == 'javascript:void(0);' and uses_vols and not incd_vol:
@@ -195,7 +195,7 @@ def mangatown(cxt):
                     page = 1
                     incd_vol = True
                     if imgs:
-                        make_cbr(imgs, manga, chapter)
+                        make_cbr(imgs, manga, chapter-1)
                         imgs = []
                     break
                 elif link_urls[0] == 'javascript:void(0);' and incd_ch and (incd_vol or not uses_vols):
@@ -203,7 +203,7 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                         print(' -> Done')
                     if imgs:
-                        make_cbr(imgs, manga, chapter)
+                        make_cbr(imgs, manga, chapter-1)
                         imgs = []
                     return
                 else:
