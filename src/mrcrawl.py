@@ -162,12 +162,14 @@ def mangatown(cxt):
     if cxt['chapter']:
         chapter = int(cxt['chapter'][0])
         if verb: print(':: Starting with chapter...{}'.format(chapter))
-    page = 0
+    page = 1
     if cxt['page']:
         page = int(cxt['page'][0])
         if verb: print(':: Starting with page...{}'.format(page))
     vol = 1
-    uses_vols = (cxt['vol'] or cxt['vols'])
+    uses_vols = False
+    if cxt['vol'] or cxt['vols']:
+        uses_vols = True
     if uses_vols:
         if verb: print(':: Using volumes')
         if cxt['vol']:
@@ -190,17 +192,18 @@ def mangatown(cxt):
             req = requests.get(url)
             if req:
                 if verb: print(' -> Good Request')
-                html_txt = requests.get(url).text
+                html_txt = req.text
                 doc = html.fromstring(html_txt)
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
                 link_urls = [i.attrib['href'] for i in doc.cssselect('a') if i.get('onclick') == 'return next_page();']
-                if verb: print(' -> Found next page URL...{}'.format(link_urls[0]))
+                if verb and link_urls: print(' -> Found next page URL...{}'.format(link_urls[0]))
                 if not link_urls and uses_vols and not incd_vol:
                     if verb: 
                         print(' -> No valid link for next page')
                         print(' -> Incrementing volume number')
                     vol += 1
+                    vol_str = 'v{:0>2}/'.format(vol)
                     page = 1
                     incd_vol = True
                     if imgs:
@@ -208,7 +211,7 @@ def mangatown(cxt):
                         if only == 'VOLUME':
                             return
                         imgs = []
-                    return
+                    continue
 
                 if link_urls[0] == 'javascript:void(0);' and not incd_ch:
                     if verb: 
