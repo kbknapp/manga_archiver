@@ -8,6 +8,7 @@ import sys
 import os
 import os.path
 import zipfile
+from PIL import Image
 
 # TODO:
 
@@ -32,6 +33,29 @@ def getonly(cxt):
         elif cxt['vol']:
             return 'VOLUME'
     return ''
+
+def validjpg(jpg, verb):
+    if verb: print(' -> Validating Image...')
+    if verb: print('   -> Zero length...', end='', flush=True)
+    if os.path.getsize(jpg) == 0:
+        if verb: print('Yes')
+        return False
+    if verb: print('No')
+    try:
+        if verb: print('   -> Can open image...', end='', flush=True)
+        im = Image.open(jpg)
+        if verb: print('Yes')
+        if verb: print('   -> Image verifies...', end='', flush=True)
+        im.verify()
+        if verb: print('Yes')
+        # if verb: print('   -> Image loads...', end='', flush=True)
+        # im.load()
+        # if verb: print('Yes')
+    except:
+        if verb: print('No')
+        return False
+    if verb: print('   -> Valid Image...')
+    return True
 
 def parse_cli():
     app = clapp.App()
@@ -261,7 +285,7 @@ def mangatown(cxt):
                     with open(img_name, 'wb') as f:
                         if verb: print(' -> Using IMG URL...{}'.format(img))
                         f.write(requests.get(img).content)
-                    if os.path.getsize(img_name) == 0:
+                    if not validjpg(img_name, verb):
                         if verb: print(' -> Bad image file, retrying...{}'.format(img))
                     else:
                         retry = False
