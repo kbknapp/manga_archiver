@@ -95,13 +95,17 @@ def mangareader(cxt):
     print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
     # prefix for CBR and JPG files
     manga = cxt['manga']
+    only = getonly(cxt)
+    verb = cxt['verb']
 
     chapter = 0
     if cxt['chapter']:
         chapter = int(cxt['chapter'][0]) - 1
+        if verb: print(':: Starting with chapter...{}'.format(chapter))
     page = 0
     if cxt['page']:
         page = int(cxt['page'][0]) - 1
+        if verb: print(':: Starting with page...{}'.format(page))
     curr = ''
     prev = ''
     dups = 0
@@ -123,10 +127,11 @@ def mangareader(cxt):
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
                 print(' -> Page...%d\r'%page, end='')
-                #print('{}'.format(page), end='', flush=True)
                 img_name = FILE_NAME.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
+                if only == 'PAGE':
+                    return
                 curr = md5sum(img_name)
                 if curr == prev:
                     dups += 1
@@ -142,6 +147,8 @@ def mangareader(cxt):
             else:
                 page = 0
                 make_cbr(imgs, manga, chapter)
+                if only == 'CHAPTER':
+                    return
                 break
 
 def mangatown(cxt):
@@ -154,9 +161,11 @@ def mangatown(cxt):
     chapter = 1
     if cxt['chapter']:
         chapter = int(cxt['chapter'][0])
+        if verb: print(':: Starting with chapter...{}'.format(chapter))
     page = 0
     if cxt['page']:
         page = int(cxt['page'][0])
+        if verb: print(':: Starting with page...{}'.format(page))
     vol = 1
     uses_vols = (cxt['vol'] or cxt['vols'])
     if uses_vols:
