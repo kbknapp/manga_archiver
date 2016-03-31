@@ -6,6 +6,7 @@ from lxml import html
 import requests
 import sys
 import os
+import os.path
 import zipfile
 
 # TODO:
@@ -21,6 +22,16 @@ def md5sum(filename):
         for buf in iter(partial(f.read, 128), b''):
             d.update(buf)
     return d.hexdigest()
+
+def getonly(cxt):
+    if cxt['only']:
+        if cxt['page']:
+            return 'PAGE'
+        elif cxt['chapter']:
+            return 'CHAPTER'
+        elif cxt['vol']:
+            return 'VOLUME'
+    return ''
 
 def parse_cli():
     app = clapp.App()
@@ -59,6 +70,9 @@ def parse_cli():
     app.new_arg('verb', \
             long='--verbose',\
             help='Use verbose output')
+    app.new_arg('only', \
+            long='--only',\
+            help='Only download the specified page, volume, or chapter')
 
     return app.start()
 
@@ -135,6 +149,7 @@ def mangatown(cxt):
     verb = cxt['verb']
     # prefix for CBR and JPG files
     manga = cxt['manga']
+    only = getonly(cxt)
 
     chapter = 1
     if cxt['chapter']:
@@ -147,7 +162,7 @@ def mangatown(cxt):
     if uses_vols:
         if verb: print(':: Using volumes')
         if cxt['vol']:
-            vol = int(cxt['vol']) 
+            vol = int(cxt['vol'][0]) 
             if verb: print(':: Starting with volume...{}'.format(vol))
     incd_ch   = False
     incd_vol  = False
@@ -172,18 +187,31 @@ def mangatown(cxt):
                 img = img_urls[0]
                 link_urls = [i.attrib['href'] for i in doc.cssselect('a') if i.get('onclick') == 'return next_page();']
                 if verb: print(' -> Found next page URL...{}'.format(link_urls[0]))
+                if not link_urls and uses_vols and not incd_vol:
+                    if verb: 
+                        print(' -> No valid link for next page')
+                        print(' -> Incrementing volume number')
+                    vol += 1
+                    page = 1
+                    incd_vol = True
+                    if imgs:
+                        make_cbr(imgs, manga, chapter-1)
+                        if only == 'VOLUME':
+                            return
+                        imgs = []
+                    return
+
                 if link_urls[0] == 'javascript:void(0);' and not incd_ch:
                     if verb: 
                         print(' -> No valid link for next page')
                         print(' -> Incrementing chapter number')
-                    # if incd_vol:
-                    #     vol -= 1
-                    #     incd_vol = False
                     chapter += 1
                     page = 1
                     incd_ch = True
                     if imgs:
                         make_cbr(imgs, manga, chapter-1)
+                        if only == 'CHAPTER':
+                            return
                         imgs = []
                     break
                 elif link_urls[0] == 'javascript:void(0);' and uses_vols and not incd_vol:
@@ -191,17 +219,18 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                         print(' -> Incrementing volume number')
                     vol += 1
-                    # chapter -= 1
                     page = 1
                     incd_vol = True
                     if imgs:
                         make_cbr(imgs, manga, chapter-1)
+                        if only == 'VOLUME':
+                            return
                         imgs = []
                     break
                 elif link_urls[0] == 'javascript:void(0);' and incd_ch and (incd_vol or not uses_vols):
                     if verb: 
                         print(' -> No valid link for next page')
-                        print(' -> Done')
+                    print(' :: Done')
                     if imgs:
                         make_cbr(imgs, manga, chapter-1)
                         imgs = []
@@ -215,9 +244,17 @@ def mangatown(cxt):
                 else:
                     print(' -> Downloading Page...%d'%page)
                 img_name = FILE_NAME.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
-                with open(img_name, 'wb') as f:
-                    if verb: print(' -> Using IMG URL...{}'.format(img))
-                    f.write(requests.get(img).content)
+                retry = True 
+                while retry:
+                    with open(img_name, 'wb') as f:
+                        if verb: print(' -> Using IMG URL...{}'.format(img))
+                        f.write(requests.get(img).content)
+                    if os.path.getsize(img_name) == 0:
+                        if verb: print(' -> Bad image file, retrying...{}'.format(img))
+                    else:
+                        retry = False
+                if only == 'PAGE':
+                    return
                 imgs.append(img_name)
             else:
                 if verb: 
