@@ -14,8 +14,8 @@ from PIL import Image
 
 MANGAREADER = 'http://www.mangareader.net/{}/{}/{}'
 MANGATOWN = 'http://www.mangatown.com/manga/{}/{}c{:0>3}/{}.html'
-FILE_NAME = '{}_{:0>3}_{:0>3}.jpg'
-CBR = '{}_ch{:0>3}.cbr'
+FILE_NAME = '{}{}_{:0>3}_{:0>3}.jpg'
+CBZ = '{}{}_ch{:0>3}.cbz'
 
 def md5sum(filename):
     with open(filename, mode='rb') as f:
@@ -62,7 +62,7 @@ def parse_cli():
     app.name = 'MR Crawl'
     app.author = 'Kevin K. <kbknapp@gmail.com>'
     app.version = '0.2.3'
-    app.about = 'Command Line utility to download manga into CBR files'
+    app.about = 'Command Line utility to download manga into CBZ files'
     
     app.new_arg('manga', \
             index=1, \
@@ -100,9 +100,9 @@ def parse_cli():
 
     return app.start()
 
-def make_cbr(imgs, manga, chapter):
-    print('\n -> Creating CBR...', end='', flush=True)
-    zip = zipfile.ZipFile(CBR.format(manga, chapter), 'w')
+def make_cbz(imgs, manga, chapter, vol):
+    print('\n -> Creating CBZ...', end='', flush=True)
+    zip = zipfile.ZipFile(CBZ.format(manga, vol, chapter), 'w')
     for img in imgs:
         zip.write(img)
         os.remove(img)
@@ -117,7 +117,7 @@ def cleanup(imgs):
 
 def mangareader(cxt):
     print('Downloading {} from {}'.format(cxt['manga'], 'mangareader'))
-    # prefix for CBR and JPG files
+    # prefix for CBZ and JPG files
     manga = cxt['manga']
     only = getonly(cxt)
     verb = cxt['verb']
@@ -151,7 +151,7 @@ def mangareader(cxt):
                 img_urls = [i.attrib['src'] for i in doc.cssselect('img')]
                 img = img_urls[0]
                 print(' -> Page...%d\r'%page, end='')
-                img_name = FILE_NAME.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
+                img_name = FILE_NAME.format(manga, '', str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 with open(img_name, 'wb') as f:
                     f.write(requests.get(img).content)
                 if only == 'PAGE':
@@ -170,7 +170,7 @@ def mangareader(cxt):
                 imgs.append(img_name)
             else:
                 page = 0
-                make_cbr(imgs, manga, chapter)
+                make_cbz(imgs, manga, chapter, '')
                 if only == 'CHAPTER':
                     return
                 break
@@ -178,7 +178,7 @@ def mangareader(cxt):
 def mangatown(cxt):
     print(':: Downloading {} from {}'.format(cxt['manga'], 'mangatown'))
     verb = cxt['verb']
-    # prefix for CBR and JPG files
+    # prefix for CBZ and JPG files
     manga = cxt['manga']
     only = getonly(cxt)
 
@@ -204,15 +204,17 @@ def mangatown(cxt):
 
     while True:
         vol_str = ''
+        url_vol_str = ''
         if cxt['vol'] or cxt['vols']:
-            vol_str = 'v{:0>2}/'.format(vol)
-        url = MANGATOWN.format(manga, vol_str, chapter, page)
+            vol_str = '_v{:0>2}'.format(vol)
+            url_vol_str = 'v{:0>2}/'.format(vol)
+        url = MANGATOWN.format(manga, url_vol_str, chapter, page)
         if verb: print(':: Using URL...{}'.format(url))
         print(':: Downloading Chapter...{}'.format(chapter))
         imgs = []
 
         while True:
-            url = MANGATOWN.format(manga, vol_str, chapter, page)
+            url = MANGATOWN.format(manga, url_vol_str, chapter, page)
             req = requests.get(url)
             if req:
                 if verb: print(' -> Good Request')
@@ -227,11 +229,12 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                         print(' -> Incrementing volume number')
                     vol += 1
-                    vol_str = 'v{:0>2}/'.format(vol)
+                    url_vol_str = 'v{:0>2}/'.format(vol)
+                    vol_str = '_v{:0>2}'.format(vol)
                     page = 1
                     incd_vol = True
                     if imgs:
-                        make_cbr(imgs, manga, chapter-1)
+                        make_cbz(imgs, manga, chapter-1, vol_str)
                         if only == 'VOLUME':
                             return
                         imgs = []
@@ -245,7 +248,7 @@ def mangatown(cxt):
                     page = 1
                     incd_ch = True
                     if imgs:
-                        make_cbr(imgs, manga, chapter-1)
+                        make_cbz(imgs, manga, chapter-1, vol_str)
                         if only == 'CHAPTER':
                             return
                         imgs = []
@@ -258,7 +261,7 @@ def mangatown(cxt):
                     page = 1
                     incd_vol = True
                     if imgs:
-                        make_cbr(imgs, manga, chapter-1)
+                        make_cbz(imgs, manga, chapter-1, vol_str)
                         if only == 'VOLUME':
                             return
                         imgs = []
@@ -268,7 +271,7 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                     print(' :: Done')
                     if imgs:
-                        make_cbr(imgs, manga, chapter-1)
+                        make_cbz(imgs, manga, chapter-1, vol_str)
                         imgs = []
                     return
                 else:
@@ -279,7 +282,7 @@ def mangatown(cxt):
                     print(' -> Downloading Page...%d\r'%page, end='')
                 else:
                     print(' -> Downloading Page...%d'%page)
-                img_name = FILE_NAME.format(manga, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
+                img_name = FILE_NAME.format(manga, vol_str, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
                 retry = True 
                 while retry:
                     with open(img_name, 'wb') as f:
@@ -298,7 +301,7 @@ def mangatown(cxt):
                     print(' -> Resetting Page Number')
                     print(' -> Incrementing Chapter Number')
                 page = 1
-                make_cbr(imgs, manga, chapter)
+                make_cbz(imgs, manga, chapter, vol_str)
                 chapter += 1
                 break
             page += 1
