@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import clapp
 import hashlib
 from functools import partial
@@ -13,7 +13,7 @@ from PIL import Image
 # TODO:
 
 MANGAREADER = 'http://www.mangareader.net/{}/{}/{}'
-MANGATOWN = 'http://www.mangatown.com/manga/{}/{}c{:0>3}/{}.html'
+MANGATOWN = 'http://www.mangatown.com/manga/{}/{}c{:0>3}/{}'
 FILE_NAME = '{}{}_{:0>3}_{:0>3}.jpg'
 CBZ = '{}{}_ch{:0>3}.cbz'
 
@@ -186,10 +186,11 @@ def mangatown(cxt):
     if cxt['chapter']:
         chapter = int(cxt['chapter'][0])
         if verb: print(':: Starting with chapter...{}'.format(chapter))
-    page = 1
+    page_n = 1
+    page = ''
     if cxt['page']:
-        page = int(cxt['page'][0])
-        if verb: print(':: Starting with page...{}'.format(page))
+        page_n = int(cxt['page'][0])
+        if verb: print(':: Starting with page...{}'.format(page_n))
     vol = 1
     uses_vols = False
     if cxt['vol'] or cxt['vols']:
@@ -208,6 +209,8 @@ def mangatown(cxt):
         if cxt['vol'] or cxt['vols']:
             vol_str = '_v{:0>2}'.format(vol)
             url_vol_str = 'v{:0>2}/'.format(vol)
+        if page_n > 1:
+            page = '{}.html'.format(page_n)
         url = MANGATOWN.format(manga, url_vol_str, chapter, page)
         if verb: print(':: Using URL...{}'.format(url))
         print(':: Downloading Chapter...{}'.format(chapter))
@@ -231,7 +234,8 @@ def mangatown(cxt):
                     vol += 1
                     url_vol_str = 'v{:0>2}/'.format(vol)
                     vol_str = '_v{:0>2}'.format(vol)
-                    page = 1
+                    page_n = 1
+                    page = ''
                     incd_vol = True
                     if imgs:
                         make_cbz(imgs, manga, chapter-1, vol_str)
@@ -245,7 +249,8 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                         print(' -> Incrementing chapter number')
                     chapter += 1
-                    page = 1
+                    page_n = 1
+                    page = ''
                     incd_ch = True
                     if imgs:
                         make_cbz(imgs, manga, chapter-1, vol_str)
@@ -258,7 +263,8 @@ def mangatown(cxt):
                         print(' -> No valid link for next page')
                         print(' -> Incrementing volume number')
                     vol += 1
-                    page = 1
+                    page_n = 1
+                    page = ''
                     incd_vol = True
                     if imgs:
                         make_cbz(imgs, manga, chapter-1, vol_str)
@@ -279,10 +285,10 @@ def mangatown(cxt):
                     incd_ch = False
                 url = link_urls[0]
                 if not verb:
-                    print(' -> Downloading Page...%d\r'%page, end='')
+                    print(' -> Downloading Page...%d\r'%page_n, end='')
                 else:
-                    print(' -> Downloading Page...%d'%page)
-                img_name = FILE_NAME.format(manga, vol_str, str(chapter).rjust(3, '0'), str(page).rjust(3, '0'))
+                    print(' -> Downloading Page...%d'%page_n)
+                img_name = FILE_NAME.format(manga, vol_str, str(chapter).rjust(3, '0'), str(page_n).rjust(3, '0'))
                 retry = True 
                 while retry:
                     with open(img_name, 'wb') as f:
@@ -300,11 +306,12 @@ def mangatown(cxt):
                     print(' -> Bad Request')
                     print(' -> Resetting Page Number')
                     print(' -> Incrementing Chapter Number')
-                page = 1
+                page_n = 1
+                page = ''
                 make_cbz(imgs, manga, chapter, vol_str)
                 chapter += 1
                 break
-            page += 1
+            page_n += 1
 
 if __name__ == '__main__':
     cxt = parse_cli()
