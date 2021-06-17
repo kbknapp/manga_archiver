@@ -2,3 +2,4 @@ cssselect
 Pillow
 requests
 lxml
+progressbar2

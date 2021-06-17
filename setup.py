@@ -36,6 +36,7 @@ setuptools.setup(
     ],
     install_requires=[
         #"functools",
+        "progressbar2",
         "cssselect",
         "Pillow",
         "requests",

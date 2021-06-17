@@ -4,6 +4,7 @@ import time
 
 from lxml import html
 from PIL import Image
+import progressbar
 
 from manga_archiver.archiver import Archiver
 from manga_archiver.printer import Printer
@@ -30,7 +31,7 @@ class MangaNelo(Archiver):
             end_ch = int(self.args.end_chapter)
 
         while True:
-            self.print(f'Downloading Chapter...{ch}')
+            self.print(f'Downloading Chapter {ch} images...')
             imgs = []
 
             self.vprint(f'Downloading from URL: {url}')
@@ -39,24 +40,25 @@ class MangaNelo(Archiver):
             doc = html.fromstring(html_txt)
             img_urls = [i.attrib['data-src'] for i in doc.cssselect('img') if i.attrib.has_key('class') and i.attrib['class'] == 'img-loading']
             num_imgs = len(img_urls)
-            for (pg, img) in enumerate(img_urls):
-                self.ptr.vprint(f'Downloading page...{pg}/{num_imgs}')
-                retries = 0
-                success = False
-                while retries < self.max_retries:
-                    img_name = FILE_NAME.format(self.name, '', str(ch).rjust(3, '0'), str(pg).rjust(3, '0'))
-                    with open(img_name, 'wb') as f:
-                        f.write(self.session.get(img).content)
+            with progressbar.ProgressBar(max_value=num_imgs) as bar:
+                for (pg, img) in enumerate(img_urls):
+                    retries = 0
+                    success = False
+                    while retries < self.max_retries:
+                        img_name = FILE_NAME.format(self.name, '', str(ch).rjust(3, '0'), str(pg).rjust(3, '0'))
+                        with open(img_name, 'wb') as f:
+                            f.write(self.session.get(img).content)
 
-                    if self.args.no_validate or self._validjpg(img_name):
-                        imgs.append(img_name)
-                        success = True
-                        break
-                    else:
-                        self.vprint(f'Bad image file, retrying...{retries}/{self.max_retries}')
-                        retries += 1
-                if not success:
-                    self.eprint('Could not download image', do_exit=True)
+                        if self.args.no_validate or self._validjpg(img_name):
+                            imgs.append(img_name)
+                            success = True
+                            break
+                        else:
+                            self.vprint(f'Bad image file, retrying...{retries}/{self.max_retries}')
+                            retries += 1
+                    if not success:
+                        self.eprint('Could not download image', do_exit=True)
+                    bar.update(pg)
             cbz.make_cbz(imgs, self.name, ch)
             next_ch_route = [i.attrib['href'] for i in doc.cssselect('a') if i.attrib.has_key('class') and i.attrib['class'] == 'navi-change-chapter-btn-next a-h']
             ch += 1
